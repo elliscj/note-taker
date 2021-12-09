@@ -1,6 +1,7 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 
@@ -28,6 +29,9 @@ app.get("/api/notes", (req, res) => {
 });
 
 app.post("/api/notes", (req, res) => {
+  const newNote = req.body;
+  newNote.id = uuidv4();
+
   // read db
   fs.readFile("./db/db.json", (err, data) => {
     console.log(err);
@@ -36,14 +40,30 @@ app.post("/api/notes", (req, res) => {
     let parsedNotes = JSON.parse(data);
     // res.json(JSON.parse(data));
     // add new note to data
-    parsedNotes.push(req.body);
+    parsedNotes.push(newNote);
     // save stringify db
     fs.writeFile("./db/db.json", JSON.stringify(parsedNotes), (err) => {
       console.log(err);
-      res.json(req.body);
+      res.json(newNote);
     });
   });
   // send db json
+});
+
+app.delete("/api/notes/:id", (req, res) => {
+  return fs.readFile("./db/db.json", (err, data) => {
+    if (err) throw err;
+    console.log(JSON.parse(data));
+
+    let userNotes = JSON.parse(data);
+
+    const fileteredNotes = userNotes.filter(
+      (note) => note.id !== req.params.id
+    );
+    fs.writeFile("./db/db.json", JSON.stringify(fileteredNotes), () => {
+      res.json({ id: req.params.id });
+    });
+  });
 });
 
 app.listen(PORT, () =>
